@@ -1,0 +1,45 @@
+clear; 
+close all; 
+clc;
+
+%Generating input bits
+N = 100000;
+n = randi([0,1],1,N);
+
+%Mapping
+for i=1:N
+    if n(i)==0
+        x(i) = -1;
+    else
+        x(i) = 1;
+    end
+end
+
+BPSK_sim = [];
+BPSK_chern = [];
+BPSK_erfc = [];
+BPSK_qfunc = [];
+
+for EbNodB = 0:1:15
+    EbNo = 10^(EbNodB/10);
+    sigma = sqrt(1/(2*EbNo));   %Received Signal has mean of Tx signal
+    Rt = x + sigma.*randn(1,N); %and variance of Noise
+    n_cap = (Rt>0);             %Threshold
+    err = sum(n~=n_cap);        %Detection
+    err = err/N;
+    BPSK_sim = [BPSK_sim err];  %Simulation
+    erf = 0.5*erfc(sqrt(EbNo));
+    BPSK_erfc = [BPSK_erfc erf]; %erfc function
+    q = qfunc(sqrt(2*EbNo));
+    BPSK_qfunc = [BPSK_qfunc q]; %Q-function
+    chern = 0.5*exp(-EbNo);
+    BPSK_chern = [BPSK_chern chern];
+end
+
+figure
+EbNodB = 0:1:15;
+semilogy(EbNodB, BPSK_sim, "r+-", EbNodB, BPSK_erfc, "k*-", EbNodB, BPSK_qfunc, "go-", EbNodB, BPSK_chern, "b^-")
+xlabel("SNR(Eb/No)");
+ylabel("Bit Error Rate");
+legend('Simulation','Theoretical-erfc','Theoretical-qfunc','Chernoff');
+grid on;
